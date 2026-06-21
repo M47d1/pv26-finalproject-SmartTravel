@@ -2,7 +2,7 @@
 ### Sistem Manajemen Reservasi & Paket Wisata Berbasis PySide6
 
 > **Tugas Akhir — Pemrograman Visual**
-> Universitas Mataram · 2024
+> Universitas Mataram · 2026
 
 ---
 
@@ -278,4 +278,4 @@ Hapus file `database/smarttravel.db` dan jalankan ulang. Database akan dibuat ul
 ## 📝 Lisensi
 
 Proyek ini dibuat untuk keperluan **Tugas Akhir Mata Kuliah Pemrograman Visual**.  
-Hak cipta © 2024 — Zainul Majdi, Nayla Anugerah Nisa, Muhammad Bintang Wiratama.
+Hak cipta © 2026 — Zainul Majdi, Nayla Anugerah Nisa, Muhammad Bintang Wiratama.
