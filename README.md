@@ -29,27 +29,27 @@ Aplikasi ini dibangun menggunakan **framework PySide6** (Qt for Python) dengan a
 ### Halaman Login
 Tampilan split-panel premium dengan branding kiri dan form login kanan. Terdapat animasi *shake* saat login gagal.
 
-![Login](asset/login.png)
+![Login](asset/login1.png)
 
 ### Dashboard
 Menampilkan 4 kartu statistik (total transaksi, revenue, pelanggan, pending) beserta grafik batang transaksi per bulan dan pie chart paket terpopuler.
 
-![Dashboard](asset/dashboard.png)
+![Dashboard](asset/dashboard1.png)
 
 ### Kelola Pelanggan
 Tabel CRUD lengkap dengan fitur pencarian real-time berdasarkan nama, email, atau nomor telepon.
 
-![Pelanggan](asset/pelanggan.png)
+![Pelanggan](asset/pelanggan1.png)
 
 ### Paket Wisata
 Manajemen daftar paket wisata dengan informasi destinasi, durasi, harga per pax, dan status ketersediaan.
 
-![Paket](asset/wisata.png)
+![Paket](asset/wisata1.png)
 
 ### Reservasi & Transaksi
 Proses pemesanan terintegrasi: pilih pelanggan & paket → kalkulasi otomatis → update status → cetak invoice PDF.
 
-![Reservasi](asset/reservasi.png)
+![Reservasi](asset/reservasi1.png)
 
 ---
 
