@@ -141,6 +141,42 @@ class PelangganModel:
         conn.close()
         return [Pelanggan(**dict(r)) for r in rows]
 
+    @staticmethod
+    def get_sorted(sort_by: str = "terbaru") -> List[Pelanggan]:
+        """Dapatkan semua pelanggan dengan sorting yang sesuai.
+
+        Args:
+            sort_by: "nama_az", "nama_za", "terbaru"
+        """
+        conn = get_connection()
+        if sort_by == "nama_az":
+            query = "SELECT * FROM pelanggan ORDER BY nama ASC"
+        elif sort_by == "nama_za":
+            query = "SELECT * FROM pelanggan ORDER BY nama DESC"
+        else:  # terbaru
+            query = "SELECT * FROM pelanggan ORDER BY created_at DESC"
+
+        rows = conn.execute(query).fetchall()
+        conn.close()
+        return [Pelanggan(**dict(r)) for r in rows]
+
+    @staticmethod
+    def search_sorted(keyword: str, sort_by: str = "terbaru") -> List[Pelanggan]:
+        """Cari pelanggan dengan sorting yang sesuai."""
+        conn = get_connection()
+        like = f"%{keyword}%"
+
+        if sort_by == "nama_az":
+            query = "SELECT * FROM pelanggan WHERE nama LIKE ? OR email LIKE ? OR telepon LIKE ? ORDER BY nama ASC"
+        elif sort_by == "nama_za":
+            query = "SELECT * FROM pelanggan WHERE nama LIKE ? OR email LIKE ? OR telepon LIKE ? ORDER BY nama DESC"
+        else:  # terbaru
+            query = "SELECT * FROM pelanggan WHERE nama LIKE ? OR email LIKE ? OR telepon LIKE ? ORDER BY created_at DESC"
+
+        rows = conn.execute(query, (like, like, like)).fetchall()
+        conn.close()
+        return [Pelanggan(**dict(r)) for r in rows]
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # PaketWisataModel
@@ -206,6 +242,27 @@ class PaketWisataModel:
         conn.execute("DELETE FROM paket_wisata WHERE id=?", (pid,))
         conn.commit()
         conn.close()
+
+    @staticmethod
+    def search(keyword: str) -> List[PaketWisata]:
+        conn = get_connection()
+        like = f"%{keyword}%"
+        rows = conn.execute(
+            "SELECT * FROM paket_wisata WHERE nama_paket LIKE ? OR destinasi LIKE ? ORDER BY created_at DESC",
+            (like, like),
+        ).fetchall()
+        conn.close()
+        return [PaketWisata(**dict(r)) for r in rows]
+
+    @staticmethod
+    def filter_by_status(tersedia: int) -> List[PaketWisata]:
+        conn = get_connection()
+        rows = conn.execute(
+            "SELECT * FROM paket_wisata WHERE tersedia = ? ORDER BY created_at DESC",
+            (tersedia,),
+        ).fetchall()
+        conn.close()
+        return [PaketWisata(**dict(r)) for r in rows]
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -308,6 +365,67 @@ class TransaksiModel:
         conn.execute("DELETE FROM transaksi WHERE id=?", (tid,))
         conn.commit()
         conn.close()
+
+    @staticmethod
+    def search(keyword: str) -> List[Transaksi]:
+        conn = get_connection()
+        like = f"%{keyword}%"
+        rows = conn.execute("""
+            SELECT t.*, p.nama AS nama_pelanggan,
+                   pw.nama_paket, pw.destinasi
+            FROM transaksi t
+            JOIN pelanggan p ON t.pelanggan_id = p.id
+            JOIN paket_wisata pw ON t.paket_id = pw.id
+            WHERE t.kode_invoice LIKE ? OR p.nama LIKE ? OR pw.nama_paket LIKE ? OR pw.destinasi LIKE ?
+            ORDER BY t.created_at DESC
+        """, (like, like, like, like)).fetchall()
+        conn.close()
+        result = []
+        for r in rows:
+            d = dict(r)
+            trx = Transaksi(
+                id=d["id"], kode_invoice=d["kode_invoice"],
+                pelanggan_id=d["pelanggan_id"], paket_id=d["paket_id"],
+                tanggal_pesan=d["tanggal_pesan"],
+                tanggal_berangkat=d["tanggal_berangkat"],
+                jumlah_orang=d["jumlah_orang"], total_harga=d["total_harga"],
+                status=d["status"], catatan=d["catatan"],
+                created_at=d["created_at"],
+                nama_pelanggan=d["nama_pelanggan"],
+                nama_paket=d["nama_paket"], destinasi=d["destinasi"],
+            )
+            result.append(trx)
+        return result
+
+    @staticmethod
+    def filter_by_status(status: str) -> List[Transaksi]:
+        conn = get_connection()
+        rows = conn.execute("""
+            SELECT t.*, p.nama AS nama_pelanggan,
+                   pw.nama_paket, pw.destinasi
+            FROM transaksi t
+            JOIN pelanggan p ON t.pelanggan_id = p.id
+            JOIN paket_wisata pw ON t.paket_id = pw.id
+            WHERE t.status = ?
+            ORDER BY t.created_at DESC
+        """, (status,)).fetchall()
+        conn.close()
+        result = []
+        for r in rows:
+            d = dict(r)
+            trx = Transaksi(
+                id=d["id"], kode_invoice=d["kode_invoice"],
+                pelanggan_id=d["pelanggan_id"], paket_id=d["paket_id"],
+                tanggal_pesan=d["tanggal_pesan"],
+                tanggal_berangkat=d["tanggal_berangkat"],
+                jumlah_orang=d["jumlah_orang"], total_harga=d["total_harga"],
+                status=d["status"], catatan=d["catatan"],
+                created_at=d["created_at"],
+                nama_pelanggan=d["nama_pelanggan"],
+                nama_paket=d["nama_paket"], destinasi=d["destinasi"],
+            )
+            result.append(trx)
+        return result
 
     @staticmethod
     def get_stats() -> dict:

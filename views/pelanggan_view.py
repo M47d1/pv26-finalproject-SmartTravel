@@ -3,11 +3,12 @@ SmartTravel - Pelanggan View
 CRUD lengkap untuk manajemen data pelanggan.
 """
 
+import re
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QTableWidget, QTableWidgetItem, QHeaderView,
     QDialog, QFormLayout, QMessageBox, QFrame, QSizePolicy,
-    QTextEdit, QAbstractItemView,
+    QTextEdit, QAbstractItemView, QComboBox,
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
@@ -29,25 +30,25 @@ class PelangganDialog(QDialog):
         self.setMinimumWidth(420)
         self.setStyleSheet(f"""
             QDialog {{
-                background-color: #1B2A3B;
+                background-color: {BG_MEDIUM};
             }}
             QLabel {{
-                color: #F0F4F8;
+                color: {TEXT_PRIMARY};
                 font-size: 12px;
             }}
             QLineEdit, QTextEdit {{
                 background-color: #162435;
-                border: 1px solid #1E3A5F;
+                border: 1px solid {BORDER};
                 border-radius: 6px;
                 padding: 8px 12px;
-                color: #F0F4F8;
+                color: {TEXT_PRIMARY};
                 font-size: 13px;
             }}
             QLineEdit:focus, QTextEdit:focus {{
-                border: 1px solid #1565C0;
+                border: 1px solid {SECONDARY};
             }}
             QPushButton {{
-                background-color: #1565C0;
+                background-color: {SECONDARY};
                 color: white;
                 border: none;
                 border-radius: 6px;
@@ -57,12 +58,12 @@ class PelangganDialog(QDialog):
             QPushButton:hover {{ background-color: #1976D2; }}
             QPushButton#btnCancel {{
                 background-color: transparent;
-                color: #8EADC1;
-                border: 1px solid #1E3A5F;
+                color: {TEXT_SECONDARY};
+                border: 1px solid {BORDER};
             }}
             QPushButton#btnCancel:hover {{
-                background-color: #1B2A3B;
-                color: #F0F4F8;
+                background-color: {BG_MEDIUM};
+                color: {TEXT_PRIMARY};
             }}
         """)
         self._build_ui()
@@ -118,6 +119,11 @@ class PelangganDialog(QDialog):
         self.inp_alamat.setText(p.alamat or "")
 
     def _on_save(self):
+        is_valid, error_msg = self._validate_data()
+        if not is_valid:
+            QMessageBox.warning(self, "Validasi Gagal", error_msg)
+            return
+
         self.result_data = {
             "nama":    self.inp_nama.text().strip(),
             "email":   self.inp_email.text().strip(),
@@ -125,6 +131,32 @@ class PelangganDialog(QDialog):
             "alamat":  self.inp_alamat.toPlainText().strip(),
         }
         self.accept()
+
+    def _validate_data(self) -> tuple:
+        nama = self.inp_nama.text().strip()
+        if not nama:
+            return False, "Nama pelanggan tidak boleh kosong."
+        if len(nama) < 3:
+            return False, "Nama minimal 3 karakter."
+        if len(nama) > 100:
+            return False, "Nama maksimal 100 karakter."
+
+        email = self.inp_email.text().strip()
+        if email:
+            email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+            if not re.match(email_pattern, email):
+                return False, "Format email tidak valid (cth: user@domain.com)."
+
+        telepon = self.inp_telepon.text().strip()
+        if telepon:
+            if len(telepon) < 7:
+                return False, "Telepon minimal 7 karakter."
+
+        alamat = self.inp_alamat.toPlainText().strip()
+        if len(alamat) > 255:
+            return False, "Alamat maksimal 255 karakter."
+
+        return True, ""
 
     def get_data(self) -> dict:
         return self.result_data
@@ -184,6 +216,28 @@ class PelangganView(QWidget):
         self.search_input.textChanged.connect(self._on_search)
         search_row.addWidget(self.search_input)
 
+        self.combo_sort = QComboBox(parent=self)
+        self.combo_sort.addItems([
+            "Urutkan: Terbaru",
+            "Urutkan: Nama (A-Z)",
+            "Urutkan: Nama (Z-A)",
+        ])
+        self.combo_sort.setStyleSheet(f"""
+            QComboBox {{
+                background-color: #162435;
+                border: 1px solid #1E3A5F;
+                border-radius: 6px;
+                padding: 8px 12px;
+                color: #F0F4F8;
+                font-size: 12px;
+            }}
+            QComboBox:focus {{ border: 1px solid {SECONDARY}; }}
+            QComboBox::drop-down {{ border: none; padding-right: 8px; }}
+        """)
+        self.combo_sort.setFixedWidth(160)
+        self.combo_sort.currentTextChanged.connect(self._on_sort_changed)
+        search_row.addWidget(self.combo_sort)
+
         self.lbl_count = QLabel("0 pelanggan", parent=self)
         self.lbl_count.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; min-width: 90px;")
         self.lbl_count.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -241,7 +295,15 @@ class PelangganView(QWidget):
 
     # ── Data ──────────────────────────────────────────────────────────────────
     def refresh_table(self, keyword: str = ""):
-        data = PelangganController.search(keyword) if keyword else PelangganController.get_all()
+        sort_text = self.combo_sort.currentText()
+        if sort_text == "Urutkan: Nama (A-Z)":
+            sort_by = "nama_az"
+        elif sort_text == "Urutkan: Nama (Z-A)":
+            sort_by = "nama_za"
+        else:
+            sort_by = "terbaru"
+
+        data = PelangganController.search_sorted(keyword, sort_by)
         self._populate(data)
 
     def _populate(self, data):
@@ -308,6 +370,9 @@ class PelangganView(QWidget):
     # ── Slots ─────────────────────────────────────────────────────────────────
     def _on_search(self, text: str):
         self.refresh_table(text)
+
+    def _on_sort_changed(self, _):
+        self.refresh_table(self.search_input.text())
 
     def _on_add(self):
         dlg = PelangganDialog(self)

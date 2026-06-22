@@ -6,10 +6,10 @@ Window utama dengan sidebar navigasi dan stacked pages.
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
     QLabel, QPushButton, QStackedWidget, QFrame,
-    QSizePolicy, QMessageBox, QSpacerItem,
+    QSizePolicy, QMessageBox, QSpacerItem, QMenuBar, QMenu, QStatusBar,
 )
 from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QIcon, QFont
+from PySide6.QtGui import QIcon, QFont, QAction
 
 from utils.theme import (
     SIDEBAR_STYLE, MAIN_STYLE, PRIMARY, SECONDARY, ACCENT,
@@ -30,9 +30,44 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(1100, 700)
         self.resize(1280, 780)
         self.setStyleSheet(MAIN_STYLE)
+        self._setup_menu_bar()
+        self._setup_status_bar()
         self._build_ui()
 
-    # ── UI Build ─────────────────────────────────────────────────────────────
+    # ── Menu Bar ──────────────────────────────────────────────────────────────
+    def _setup_menu_bar(self):
+        menubar = self.menuBar()
+
+        # File menu
+        file_menu = menubar.addMenu("&File")
+        exit_action = QAction("&Keluar", self)
+        exit_action.triggered.connect(self._on_logout)
+        file_menu.addAction(exit_action)
+
+        # Help menu
+        help_menu = menubar.addMenu("&Help")
+        about_action = QAction("&About", self)
+        about_action.triggered.connect(self._on_about)
+        help_menu.addAction(about_action)
+
+    # ── Status Bar ────────────────────────────────────────────────────────────
+    def _setup_status_bar(self):
+        status_bar = self.statusBar()
+
+        team_info = QLabel(
+            "👥  Tim: Zainul Majdi (F1D02310028) | Nayla Anugerah Nisa (F1D02310020) | Muhammad Bintang Wiratama (F1D022141)",
+            self
+        )
+        team_info.setStyleSheet(f"""
+            color: {TEXT_SECONDARY};
+            font-size: 11px;
+            padding: 4px 12px;
+            background-color: {BG_MEDIUM};
+            border-radius: 4px;
+        """)
+        status_bar.addPermanentWidget(team_info, 1)
+
+    # ── UI Build ──────────────────────────────────────────────────────────────
     def _build_ui(self):
         central = QWidget(parent=self)
         self.setCentralWidget(central)
@@ -43,6 +78,30 @@ class MainWindow(QMainWindow):
 
         root.addWidget(self._make_sidebar())
         root.addWidget(self._make_content_area())
+
+    # ── Help / About ──────────────────────────────────────────────────────────
+    def _on_about(self):
+        about_text = """
+<b>SmartTravel v1.0.0</b>
+
+Sistem Manajemen Reservasi & Paket Wisata
+
+<b>Deskripsi:</b>
+Aplikasi desktop untuk mengelola data pelanggan, paket wisata,
+dan transaksi reservasi dengan fitur pencarian, filter, dan
+pembuatan invoice PDF.
+
+<b>Tim Pengembang:</b>
+• Zainul Majdi (NIM: F1D02310028) - Ketua
+• Nayla Anugerah Nisa (NIM: F1D02310020) - Anggota
+• Muhammad Bintang Wiratama (NIM: F1D022141) - Anggota
+
+<b>Tugas Akhir:</b>
+Pemrograman Visual - Semester Genap 2025/2026
+
+© 2026 SmartTravel Team. All rights reserved.
+        """
+        QMessageBox.about(self, "Tentang SmartTravel", about_text)
 
     # ── Sidebar ───────────────────────────────────────────────────────────────
     def _make_sidebar(self) -> QWidget:

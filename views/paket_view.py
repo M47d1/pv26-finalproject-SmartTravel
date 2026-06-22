@@ -3,6 +3,7 @@ SmartTravel - Paket Wisata View
 CRUD untuk manajemen paket wisata.
 """
 
+import re
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QTableWidget, QTableWidgetItem, QHeaderView,
@@ -10,7 +11,7 @@ from PySide6.QtWidgets import (
     QCheckBox, QTextEdit, QAbstractItemView,
 )
 from PySide6.QtCore import Qt
-from utils.theme import SECONDARY, ACCENT, DANGER, SUCCESS, BG_MEDIUM, BG_CARD, TEXT_MUTED
+from utils.theme import SECONDARY, ACCENT, DANGER, SUCCESS, BG_MEDIUM, BG_CARD, TEXT_MUTED, BG_INPUT, BORDER, TEXT_PRIMARY, TEXT_SECONDARY
 from controllers.controllers import PaketController
 
 
@@ -20,27 +21,27 @@ class PaketDialog(QDialog):
         self.paket = paket
         self.setWindowTitle("Edit Paket" if paket else "Tambah Paket Wisata")
         self.setMinimumWidth(440)
-        self.setStyleSheet("""
-            QDialog { background-color: #1B2A3B; }
-            QLabel { color: #F0F4F8; font-size: 12px; }
-            QLineEdit, QTextEdit, QSpinBox, QDoubleSpinBox {
-                background-color: #162435; border: 1px solid #1E3A5F;
-                border-radius: 6px; padding: 8px 12px; color: #F0F4F8; font-size: 13px;
-            }
-            QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {
-                border: 1px solid #1565C0;
-            }
-            QPushButton {
-                background-color: #1565C0; color: white; border: none;
+        self.setStyleSheet(f"""
+            QDialog {{ background-color: {BG_MEDIUM}; }}
+            QLabel {{ color: {TEXT_PRIMARY}; font-size: 12px; }}
+            QLineEdit, QTextEdit, QSpinBox, QDoubleSpinBox {{
+                background-color: #162435; border: 1px solid {BORDER};
+                border-radius: 6px; padding: 8px 12px; color: {TEXT_PRIMARY}; font-size: 13px;
+            }}
+            QLineEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {{
+                border: 1px solid {SECONDARY};
+            }}
+            QPushButton {{
+                background-color: {SECONDARY}; color: white; border: none;
                 border-radius: 6px; padding: 9px 22px; font-weight: 600;
-            }
-            QPushButton:hover { background-color: #1976D2; }
-            QPushButton#btnCancel {
-                background-color: transparent; color: #8EADC1;
-                border: 1px solid #1E3A5F;
-            }
-            QPushButton#btnCancel:hover { background-color: #1B2A3B; color: #F0F4F8; }
-            QCheckBox { color: #F0F4F8; }
+            }}
+            QPushButton:hover {{ background-color: #1976D2; }}
+            QPushButton#btnCancel {{
+                background-color: transparent; color: {TEXT_SECONDARY};
+                border: 1px solid {BORDER};
+            }}
+            QPushButton#btnCancel:hover {{ background-color: {BG_MEDIUM}; color: {TEXT_PRIMARY}; }}
+            QCheckBox {{ color: {TEXT_PRIMARY}; }}
         """)
         self._build_ui()
         if paket:
@@ -109,6 +110,11 @@ class PaketDialog(QDialog):
         self.chk_tersedia.setChecked(bool(p.tersedia))
 
     def _on_save(self):
+        is_valid, error_msg = self._validate_data()
+        if not is_valid:
+            QMessageBox.warning(self, "Validasi Gagal", error_msg)
+            return
+
         self.result_data = {
             "nama_paket":  self.inp_nama.text().strip(),
             "destinasi":   self.inp_destinasi.text().strip(),
@@ -118,6 +124,37 @@ class PaketDialog(QDialog):
             "tersedia":    1 if self.chk_tersedia.isChecked() else 0,
         }
         self.accept()
+
+    def _validate_data(self) -> tuple:
+        nama_paket = self.inp_nama.text().strip()
+        if not nama_paket:
+            return False, "Nama paket tidak boleh kosong."
+        if len(nama_paket) < 3:
+            return False, "Nama paket minimal 3 karakter."
+        if len(nama_paket) > 100:
+            return False, "Nama paket maksimal 100 karakter."
+
+        destinasi = self.inp_destinasi.text().strip()
+        if not destinasi:
+            return False, "Destinasi tidak boleh kosong."
+        if len(destinasi) < 3:
+            return False, "Destinasi minimal 3 karakter."
+        if len(destinasi) > 100:
+            return False, "Destinasi maksimal 100 karakter."
+
+        harga = self.inp_harga.value()
+        if harga <= 0:
+            return False, "Harga harus lebih dari 0."
+
+        durasi = self.inp_durasi.value()
+        if durasi < 1 or durasi > 365:
+            return False, "Durasi harus antara 1-365 hari."
+
+        deskripsi = self.inp_deskripsi.toPlainText().strip()
+        if len(deskripsi) > 500:
+            return False, "Deskripsi maksimal 500 karakter."
+
+        return True, ""
 
     def get_data(self):
         return self.result_data
@@ -153,6 +190,35 @@ class PaketView(QWidget):
         btn_add.clicked.connect(self._on_add)
         hdr.addWidget(btn_add)
         main.addLayout(hdr)
+
+        # ── Search & Filter ──────────────────────────────────────────────────
+        search_row = QHBoxLayout()
+        self.search_input = QLineEdit(parent=self)
+        self.search_input.setPlaceholderText("🔍  Cari nama paket atau destinasi...")
+        self.search_input.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: #162435;
+                border: 1px solid #1E3A5F;
+                border-radius: 8px;
+                padding: 10px 16px;
+                color: #F0F4F8;
+                font-size: 13px;
+            }}
+            QLineEdit:focus {{ border: 1px solid {SECONDARY}; }}
+        """)
+        self.search_input.textChanged.connect(self._on_search)
+        search_row.addWidget(self.search_input)
+
+        self.chk_tersedia = QCheckBox("Hanya Tersedia")
+        self.chk_tersedia.setStyleSheet("color: #F0F4F8; font-size: 12px;")
+        self.chk_tersedia.stateChanged.connect(self._on_filter_toggled)
+        search_row.addWidget(self.chk_tersedia)
+
+        self.lbl_count = QLabel("0 paket", parent=self)
+        self.lbl_count.setStyleSheet(f"color: {TEXT_MUTED}; font-size: 12px; min-width: 90px;")
+        self.lbl_count.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        search_row.addWidget(self.lbl_count)
+        main.addLayout(search_row)
 
         # Table
         self.table = QTableWidget(parent=self)
@@ -196,9 +262,16 @@ class PaketView(QWidget):
         """)
         main.addWidget(self.table)
 
-    def refresh_table(self):
-        data = PaketController.get_all()
+    def refresh_table(self, keyword: str = ""):
+        if self.chk_tersedia.isChecked():
+            data = PaketController.filter_by_status(1)
+            if keyword:
+                data = [p for p in data if keyword.lower() in p.nama_paket.lower() or keyword.lower() in p.destinasi.lower()]
+        else:
+            data = PaketController.search(keyword) if keyword else PaketController.get_all()
+
         self.table.setRowCount(0)
+        self.lbl_count.setText(f"{len(data)} paket")
         for ri, p in enumerate(data):
             self.table.insertRow(ri)
             cells = [p.id, p.nama_paket, p.destinasi, f"{p.durasi_hari}H", f"Rp {p.harga:,.0f}"]
@@ -258,6 +331,12 @@ class PaketView(QWidget):
         lay.addWidget(btn_e)
         lay.addWidget(btn_d)
         return w
+
+    def _on_search(self, text: str):
+        self.refresh_table(text)
+
+    def _on_filter_toggled(self):
+        self.refresh_table(self.search_input.text())
 
     def _on_add(self):
         dlg = PaketDialog(self)

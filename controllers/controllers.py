@@ -55,6 +55,18 @@ class PelangganController:
         return PelangganModel.search(keyword)
 
     @staticmethod
+    def get_sorted(sort_by: str = "terbaru") -> List[Pelanggan]:
+        """Dapatkan semua pelanggan dengan sorting."""
+        return PelangganModel.get_sorted(sort_by)
+
+    @staticmethod
+    def search_sorted(keyword: str, sort_by: str = "terbaru") -> List[Pelanggan]:
+        """Cari dengan sorting yang sesuai."""
+        if not keyword.strip():
+            return PelangganModel.get_sorted(sort_by)
+        return PelangganModel.search_sorted(keyword, sort_by)
+
+    @staticmethod
     def create(nama: str, email: str, telepon: str, alamat: str) -> Tuple[bool, str]:
         if not nama.strip():
             return False, "Nama pelanggan tidak boleh kosong."
@@ -68,12 +80,12 @@ class PelangganController:
 
     @staticmethod
     def update(pid: int, nama: str, email: str,
-               telepon: str, alamat: str) -> Tuple[bool, str]:
+            telepon: str, alamat: str) -> Tuple[bool, str]:
         if not nama.strip():
             return False, "Nama pelanggan tidak boleh kosong."
         try:
             PelangganModel.update(pid, nama.strip(), email.strip(),
-                                  telepon.strip(), alamat.strip())
+                                telepon.strip(), alamat.strip())
             return True, "Data pelanggan berhasil diperbarui."
         except Exception as e:
             return False, f"Gagal: {e}"
@@ -101,6 +113,16 @@ class PaketController:
     @staticmethod
     def get_available() -> List[PaketWisata]:
         return PaketWisataModel.get_available()
+
+    @staticmethod
+    def search(keyword: str) -> List[PaketWisata]:
+        if not keyword.strip():
+            return PaketWisataModel.get_all()
+        return PaketWisataModel.search(keyword)
+
+    @staticmethod
+    def filter_by_status(tersedia: int) -> List[PaketWisata]:
+        return PaketWisataModel.filter_by_status(tersedia)
 
     @staticmethod
     def create(nama_paket: str, destinasi: str, durasi_hari: int,
@@ -149,6 +171,18 @@ class TransaksiController:
     @staticmethod
     def get_all() -> List[Transaksi]:
         return TransaksiModel.get_all()
+
+    @staticmethod
+    def search(keyword: str) -> List[Transaksi]:
+        if not keyword.strip():
+            return TransaksiModel.get_all()
+        return TransaksiModel.search(keyword)
+
+    @staticmethod
+    def filter_by_status(status: str) -> List[Transaksi]:
+        if not status or status == "Semua":
+            return TransaksiModel.get_all()
+        return TransaksiModel.filter_by_status(status)
 
     @staticmethod
     def create(pelanggan_id: int, paket_id: int, tanggal_berangkat: str,
