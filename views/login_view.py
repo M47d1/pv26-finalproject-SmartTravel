@@ -104,7 +104,7 @@ class LoginView(QWidget):
         lay.addStretch()
 
         # Footer credit
-        credit = QLabel("Tugas Akhir Pemrograman Visual · 2024", parent=panel)
+        credit = QLabel("Tugas Akhir Pemrograman Visual · 2026", parent=panel)
         credit.setAlignment(Qt.AlignmentFlag.AlignCenter)
         credit.setStyleSheet("color: rgba(255,255,255,0.30); font-size: 11px; background: transparent; border: none;")
         lay.addWidget(credit)
